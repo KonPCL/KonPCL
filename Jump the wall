@@ -1,0 +1,132 @@
+import pygame
+import random
+
+# Initialize Pygame
+pygame.init()
+
+# Screen dimensions
+SCREEN_WIDTH = 800
+SCREEN_HEIGHT = 600
+
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (255, 0, 0)
+BLUE = (0, 0, 255)
+
+# Player attributes
+PLAYER_WIDTH = 50
+PLAYER_HEIGHT = 50
+PLAYER_X = 100
+PLAYER_Y = SCREEN_HEIGHT - PLAYER_HEIGHT
+PLAYER_VELOCITY = 10
+JUMP_VELOCITY = 20
+GRAVITY = 1
+
+# Wall attributes
+WALL_WIDTH = 50
+WALL_HEIGHT = 100
+WALL_VELOCITY = 5
+WALL_INTERVAL = 2000  # time in milliseconds
+
+# Initialize screen
+screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Jump Over Walls Game")
+
+# Player class
+class Player:
+    def __init__(self):
+        self.rect = pygame.Rect(PLAYER_X, PLAYER_Y, PLAYER_WIDTH, PLAYER_HEIGHT)
+        self.velocity = 0
+        self.on_ground = True
+
+    def jump(self):
+        if self.on_ground:
+            self.velocity = -JUMP_VELOCITY
+            self.on_ground = False
+
+    def update(self):
+        self.velocity += GRAVITY
+        self.rect.y += self.velocity
+        if self.rect.y >= SCREEN_HEIGHT - PLAYER_HEIGHT:
+            self.rect.y = SCREEN_HEIGHT - PLAYER_HEIGHT
+            self.velocity = 0
+            self.on_ground = True
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, RED, self.rect)
+
+# Wall class
+class Wall:
+    def __init__(self, x, height, velocity):
+        self.rect = pygame.Rect(x, SCREEN_HEIGHT - height, WALL_WIDTH, height)
+        self.velocity = velocity
+
+    def update(self):
+        self.rect.x -= self.velocity
+
+    def draw(self, screen):
+        pygame.draw.rect(screen, BLACK, self.rect)
+
+# Game loop
+def game_loop():
+    player = Player()
+    walls = []
+    score = 0
+    wall_timer = 0
+    wall_interval = WALL_INTERVAL
+    wall_velocity = WALL_VELOCITY
+
+    clock = pygame.time.Clock()
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    player.jump()
+
+        # Update player
+        player.update()
+
+        # Add new walls
+        wall_timer += clock.get_time()
+        if wall_timer >= wall_interval:
+            wall_timer = 0
+            wall_height = random.randint(50, 150)
+            walls.append(Wall(SCREEN_WIDTH, wall_height, wall_velocity))
+            score += 1
+            if score % 5 == 0:
+                wall_velocity += 1
+                if wall_interval > 500:
+                    wall_interval -= 100
+
+        # Update walls
+        for wall in walls:
+            wall.update()
+        walls = [wall for wall in walls if wall.rect.x + WALL_WIDTH > 0]
+
+        # Check for collisions
+        for wall in walls:
+            if player.rect.colliderect(wall.rect):
+                running = False
+
+        # Draw everything
+        screen.fill(WHITE)
+        player.draw(screen)
+        for wall in walls:
+            wall.draw(screen)
+
+        # Display score
+        font = pygame.font.Font(None, 36)
+        score_text = font.render(f"Score: {score}", True, BLUE)
+        screen.blit(score_text, (10, 10))
+
+        pygame.display.flip()
+        clock.tick(30)
+
+    pygame.quit()
+
+if __name__ == "__main__":
+    game_loop()
